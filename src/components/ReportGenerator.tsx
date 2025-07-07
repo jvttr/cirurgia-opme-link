@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -23,18 +22,39 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Function to normalize patient names for comparison
+  const normalizePatientName = (name: string): string => {
+    return name.toLowerCase().trim().replace(/\s+/g, ' ');
+  };
+
   const generateReport = () => {
     setIsGenerating(true);
     
     try {
-      const report: CombinedReport[] = surgicalMapData.map(surgery => {
-        // Relaciona materiais OPME com base no procedimento
-        const relatedMaterials = opmeData.filter(material => 
-          material.procedure.toLowerCase().includes(surgery.procedure.toLowerCase()) ||
-          surgery.procedure.toLowerCase().includes(material.procedure.toLowerCase())
-        );
+      console.log('Gerando relatório...');
+      console.log('Dados cirúrgicos:', surgicalMapData);
+      console.log('Dados OPME:', opmeData);
 
-        const totalCost = relatedMaterials.reduce((sum, material) => sum + material.cost, 0);
+      const report: CombinedReport[] = surgicalMapData.map(surgery => {
+        const normalizedSurgeryPatient = normalizePatientName(surgery.patient);
+        
+        // Match materials OPME by patient name
+        const relatedMaterials = opmeData.filter(material => {
+          const normalizedMaterialPatient = normalizePatientName(material.patient || '');
+          
+          // Exact match first
+          if (normalizedSurgeryPatient === normalizedMaterialPatient) {
+            return true;
+          }
+          
+          // Partial match - check if names contain each other
+          return normalizedSurgeryPatient.includes(normalizedMaterialPatient) || 
+                 normalizedMaterialPatient.includes(normalizedSurgeryPatient);
+        });
+
+        const totalCost = relatedMaterials.reduce((sum, material) => sum + (material.cost || 0), 0);
+
+        console.log(`Paciente: ${surgery.patient}, Materiais encontrados: ${relatedMaterials.length}`);
 
         return {
           patient: surgery.patient,
@@ -205,7 +225,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-800 flex items-center">
             <FileSpreadsheet className="h-5 w-5 mr-2" />
-            Prévia do Relatório Combinado
+            Prévia do Relatório Combinado (Relacionamento por Nome do Paciente)
           </h3>
           
           <div className="grid gap-4 max-h-96 overflow-y-auto">
