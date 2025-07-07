@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { SurgicalMapData, OPMEData } from '@/pages/Index';
-import { Calendar, User, Stethoscope, Package2 } from 'lucide-react';
+import { Calendar, User, Stethoscope, Package2, Hash } from 'lucide-react';
 
 interface DataPreviewProps {
   surgicalMapData: SurgicalMapData[];
@@ -42,24 +42,24 @@ export const DataPreview: React.FC<DataPreviewProps> = ({
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center">
+                        <Hash className="h-4 w-4 text-blue-600 mr-2" />
+                        <span className="font-medium">Atendimento:</span>
+                        <span className="ml-1">{item.attendance}</span>
+                      </div>
+                      <div className="flex items-center">
                         <User className="h-4 w-4 text-blue-600 mr-2" />
                         <span className="font-medium">Paciente:</span>
                         <span className="ml-1">{item.patient}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Stethoscope className="h-4 w-4 text-blue-600 mr-2" />
-                        <span className="font-medium">Procedimento:</span>
-                        <span className="ml-1">{item.procedure}</span>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 text-blue-600 mr-2" />
-                        <span className="font-medium">Data:</span>
-                        <span className="ml-1">{item.date}</span>
+                        <span className="font-medium">Data/Hora:</span>
+                        <span className="ml-1">{item.dateTime}</span>
                       </div>
                       <div className="flex items-center">
-                        <User className="h-4 w-4 text-blue-600 mr-2" />
+                        <Stethoscope className="h-4 w-4 text-blue-600 mr-2" />
                         <span className="font-medium">Cirurgião:</span>
                         <span className="ml-1">{item.surgeon}</span>
                       </div>
@@ -91,27 +91,21 @@ export const DataPreview: React.FC<DataPreviewProps> = ({
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center">
+                        <Hash className="h-4 w-4 text-green-600 mr-2" />
+                        <span className="font-medium">Atendimento:</span>
+                        <span className="ml-1">{item.attendance}</span>
+                      </div>
+                      <div className="flex items-center">
                         <Package2 className="h-4 w-4 text-green-600 mr-2" />
                         <span className="font-medium">Material:</span>
                         <span className="ml-1">{item.material}</span>
                       </div>
-                      <div className="flex items-center">
-                        <span className="font-medium">Código:</span>
-                        <Badge variant="outline" className="ml-1">
-                          {item.code}
-                        </Badge>
-                      </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center">
-                        <Stethoscope className="h-4 w-4 text-green-600 mr-2" />
-                        <span className="font-medium">Procedimento:</span>
-                        <span className="ml-1">{item.procedure}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <span className="font-medium">Custo:</span>
+                        <span className="font-medium">Quantidade:</span>
                         <Badge variant="secondary" className="ml-1">
-                          R$ {item.cost.toFixed(2)}
+                          {item.quantity}
                         </Badge>
                       </div>
                     </div>

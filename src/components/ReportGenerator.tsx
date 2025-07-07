@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Download, FileSpreadsheet, Calculator, User, Package2 } from 'lucide-react';
+import { Download, FileSpreadsheet, Calculator, User, Package2, Hash } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SurgicalMapData, OPMEData, CombinedReport } from '@/pages/Index';
 
@@ -22,11 +23,6 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Function to normalize patient names for comparison
-  const normalizePatientName = (name: string): string => {
-    return name.toLowerCase().trim().replace(/\s+/g, ' ');
-  };
-
   const generateReport = () => {
     setIsGenerating(true);
     
@@ -36,33 +32,22 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
       console.log('Dados OPME:', opmeData);
 
       const report: CombinedReport[] = surgicalMapData.map(surgery => {
-        const normalizedSurgeryPatient = normalizePatientName(surgery.patient);
-        
-        // Match materials OPME by patient name
-        const relatedMaterials = opmeData.filter(material => {
-          const normalizedMaterialPatient = normalizePatientName(material.patient || '');
-          
-          // Exact match first
-          if (normalizedSurgeryPatient === normalizedMaterialPatient) {
-            return true;
-          }
-          
-          // Partial match - check if names contain each other
-          return normalizedSurgeryPatient.includes(normalizedMaterialPatient) || 
-                 normalizedMaterialPatient.includes(normalizedSurgeryPatient);
-        });
+        // Match materials OPME by attendance number
+        const relatedMaterials = opmeData.filter(material => 
+          material.attendance === surgery.attendance
+        );
 
-        const totalCost = relatedMaterials.reduce((sum, material) => sum + (material.cost || 0), 0);
+        const totalQuantity = relatedMaterials.reduce((sum, material) => sum + (material.quantity || 0), 0);
 
-        console.log(`Paciente: ${surgery.patient}, Materiais encontrados: ${relatedMaterials.length}`);
+        console.log(`Atendimento: ${surgery.attendance}, Materiais encontrados: ${relatedMaterials.length}`);
 
         return {
+          attendance: surgery.attendance,
           patient: surgery.patient,
-          procedure: surgery.procedure,
-          date: surgery.date,
+          dateTime: surgery.dateTime,
           surgeon: surgery.surgeon,
           materials: relatedMaterials,
-          totalCost: totalCost
+          totalQuantity: totalQuantity
         };
       });
 
@@ -70,7 +55,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
       
       toast({
         title: "Relatório Gerado",
-        description: `Relatório combinado criado com ${report.length} pacientes.`,
+        description: `Relatório combinado criado com ${report.length} atendimentos.`,
       });
       
       console.log('Relatório gerado:', report);
@@ -97,28 +82,26 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
     }
 
     try {
-      // Prepara os dados para exportação
+      // Prepare data for export
       const exportData = combinedReport.flatMap(report => 
         report.materials.length > 0 
           ? report.materials.map(material => ({
+              'Atendimento': report.attendance,
               'Paciente': report.patient,
-              'Procedimento': report.procedure,
-              'Data': report.date,
+              'Data/Hora': report.dateTime,
               'Cirurgião': report.surgeon,
               'Material OPME': material.material,
-              'Código Material': material.code,
-              'Custo Unitário': material.cost,
-              'Custo Total Paciente': report.totalCost
+              'Quantidade': material.quantity,
+              'Quantidade Total Atendimento': report.totalQuantity
             }))
           : [{
+              'Atendimento': report.attendance,
               'Paciente': report.patient,
-              'Procedimento': report.procedure,
-              'Data': report.date,
+              'Data/Hora': report.dateTime,
               'Cirurgião': report.surgeon,
               'Material OPME': 'Nenhum material relacionado',
-              'Código Material': '-',
-              'Custo Unitário': 0,
-              'Custo Total Paciente': 0
+              'Quantidade': 0,
+              'Quantidade Total Atendimento': 0
             }]
       );
 
@@ -126,16 +109,15 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Relatório OPME');
 
-      // Define larguras das colunas
+      // Set column widths
       const colWidths = [
+        { wch: 15 }, // Atendimento
         { wch: 25 }, // Paciente
-        { wch: 30 }, // Procedimento
-        { wch: 12 }, // Data
+        { wch: 20 }, // Data/Hora
         { wch: 25 }, // Cirurgião
         { wch: 40 }, // Material OPME
-        { wch: 15 }, // Código Material
-        { wch: 15 }, // Custo Unitário
-        { wch: 20 }, // Custo Total Paciente
+        { wch: 12 }, // Quantidade
+        { wch: 20 }, // Quantidade Total Atendimento
       ];
       worksheet['!cols'] = colWidths;
 
@@ -156,9 +138,9 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
     }
   };
 
-  const totalPatients = combinedReport.length;
+  const totalAttendances = combinedReport.length;
   const totalMaterials = combinedReport.reduce((sum, report) => sum + report.materials.length, 0);
-  const totalCost = combinedReport.reduce((sum, report) => sum + report.totalCost, 0);
+  const totalQuantity = combinedReport.reduce((sum, report) => sum + report.totalQuantity, 0);
 
   return (
     <div className="space-y-6">
@@ -191,10 +173,10 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           <Card className="p-4 bg-blue-50 border-blue-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-600 font-medium">Pacientes</p>
-                <p className="text-2xl font-bold text-blue-800">{totalPatients}</p>
+                <p className="text-sm text-blue-600 font-medium">Atendimentos</p>
+                <p className="text-2xl font-bold text-blue-800">{totalAttendances}</p>
               </div>
-              <User className="h-8 w-8 text-blue-600" />
+              <Hash className="h-8 w-8 text-blue-600" />
             </div>
           </Card>
 
@@ -211,8 +193,8 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           <Card className="p-4 bg-purple-50 border-purple-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-600 font-medium">Custo Total</p>
-                <p className="text-2xl font-bold text-purple-800">R$ {totalCost.toFixed(2)}</p>
+                <p className="text-sm text-purple-600 font-medium">Quantidade Total</p>
+                <p className="text-2xl font-bold text-purple-800">{totalQuantity}</p>
               </div>
               <Calculator className="h-8 w-8 text-purple-600" />
             </div>
@@ -225,7 +207,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-800 flex items-center">
             <FileSpreadsheet className="h-5 w-5 mr-2" />
-            Prévia do Relatório Combinado (Relacionamento por Nome do Paciente)
+            Prévia do Relatório Combinado (Relacionamento por Atendimento)
           </h3>
           
           <div className="grid gap-4 max-h-96 overflow-y-auto">
@@ -234,17 +216,18 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center">
+                      <Hash className="h-4 w-4 text-blue-600 mr-2" />
+                      <span className="font-medium">Atendimento:</span>
+                      <span className="ml-1">{report.attendance}</span>
+                    </div>
+                    <div className="flex items-center">
                       <User className="h-4 w-4 text-blue-600 mr-2" />
                       <span className="font-medium">Paciente:</span>
                       <span className="ml-1">{report.patient}</span>
                     </div>
                     <div className="flex items-center">
-                      <span className="font-medium">Procedimento:</span>
-                      <span className="ml-1 text-sm">{report.procedure}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="font-medium">Data:</span>
-                      <span className="ml-1">{report.date}</span>
+                      <span className="font-medium">Data/Hora:</span>
+                      <span className="ml-1">{report.dateTime}</span>
                     </div>
                   </div>
                   
@@ -257,12 +240,12 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
                       </Badge>
                     </div>
                     <div className="flex items-center">
-                      <span className="font-medium">Custo Total:</span>
+                      <span className="font-medium">Quantidade Total:</span>
                       <Badge 
-                        variant={report.totalCost > 0 ? "default" : "secondary"} 
+                        variant={report.totalQuantity > 0 ? "default" : "secondary"} 
                         className="ml-2"
                       >
-                        R$ {report.totalCost.toFixed(2)}
+                        {report.totalQuantity}
                       </Badge>
                     </div>
                     {report.materials.length > 0 && (
@@ -270,7 +253,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
                         <p>Principais materiais:</p>
                         <ul className="list-disc list-inside ml-2">
                           {report.materials.slice(0, 2).map((material, i) => (
-                            <li key={i}>{material.material}</li>
+                            <li key={i}>{material.material} ({material.quantity})</li>
                           ))}
                           {report.materials.length > 2 && (
                             <li>+{report.materials.length - 2} outros...</li>

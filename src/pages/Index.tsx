@@ -3,53 +3,66 @@ import React, { useState } from 'react';
 import { FileUploadSection } from '@/components/FileUploadSection';
 import { DataPreview } from '@/components/DataPreview';
 import { ReportGenerator } from '@/components/ReportGenerator';
+import { AuthForm } from '@/components/AuthForm';
+import { Header } from '@/components/Header';
 import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { FileSpreadsheet, Users, Package } from 'lucide-react';
+import { Package, Users } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface SurgicalMapData {
+  attendance: string;
   patient: string;
-  procedure: string;
-  date: string;
+  dateTime: string;
   surgeon: string;
   [key: string]: any;
 }
 
 export interface OPMEData {
+  attendance: string;
   material: string;
-  code: string;
-  procedure: string;
-  cost: number;
+  quantity: number;
   [key: string]: any;
 }
 
 export interface CombinedReport {
+  attendance: string;
   patient: string;
-  procedure: string;
-  date: string;
+  dateTime: string;
   surgeon: string;
   materials: OPMEData[];
-  totalCost: number;
+  totalQuantity: number;
 }
 
 const Index = () => {
+  const { user, loading } = useAuth();
   const [surgicalMapData, setSurgicalMapData] = useState<SurgicalMapData[]>([]);
   const [opmeData, setOpmeData] = useState<OPMEData[]>([]);
   const [combinedReport, setCombinedReport] = useState<CombinedReport[]>([]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthForm onAuthSuccess={() => {}} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <Header />
+      
       <div className="container mx-auto py-8 px-4">
-        {/* Header */}
+        {/* Description */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <FileSpreadsheet className="h-12 w-12 text-blue-600 mr-3" />
-            <h1 className="text-4xl font-bold text-gray-900">
-              Analisador de Mapa Cirúrgico TASY
-            </h1>
-          </div>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Ferramenta para relacionar mapas cirúrgicos com materiais OPME e gerar relatórios detalhados
+            Ferramenta para relacionar mapas cirúrgicos com materiais OPME por número de atendimento
           </p>
         </div>
 
@@ -83,7 +96,7 @@ const Index = () => {
         {surgicalMapData.length > 0 && opmeData.length > 0 && (
           <Card className="p-6 shadow-lg">
             <div className="flex items-center mb-4">
-              <FileSpreadsheet className="h-6 w-6 text-blue-600 mr-2" />
+              <Package className="h-6 w-6 text-blue-600 mr-2" />
               <h2 className="text-2xl font-semibold text-gray-800">Geração de Relatório</h2>
             </div>
             <ReportGenerator

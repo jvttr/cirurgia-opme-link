@@ -19,20 +19,6 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   const [surgicalMapUploaded, setSurgicalMapUploaded] = React.useState(false);
   const [opmeUploaded, setOpmeUploaded] = React.useState(false);
 
-  // Function to extract patient name from OPME format "######-NNNN"
-  const extractPatientFromOPME = (text: string): string => {
-    if (!text || typeof text !== 'string') return 'N/A';
-    
-    // Look for pattern: numbers followed by dash followed by name
-    const match = text.match(/^\d+\s*-\s*(.+)$/);
-    if (match && match[1]) {
-      return match[1].trim();
-    }
-    
-    // If no pattern match, return the original text cleaned
-    return text.trim() || 'N/A';
-  };
-
   const processExcelFile = useCallback((file: File, type: 'surgical' | 'opme') => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -46,22 +32,21 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         console.log(`Dados brutos processados (${type}):`, jsonData);
 
         if (type === 'surgical') {
-          // Filter rows where column D (index 3) is not empty
+          // Filter rows where column D (patient) is not empty
           const filteredData = jsonData.filter((row: any[]) => {
             return row && row[3] && row[3].toString().trim() !== '';
           });
 
           console.log('Dados filtrados do mapa cirúrgico:', filteredData);
 
-          // Convert to objects, assuming first row might be headers
-          const headers = filteredData[0] || [];
+          // Skip header row and convert to objects
           const dataRows = filteredData.slice(1);
 
           const surgicalData: SurgicalMapData[] = dataRows.map((row: any[]) => ({
+            attendance: row[2] ? row[2].toString().trim() : 'N/A', // Column C
             patient: row[3] ? row[3].toString().trim() : 'N/A', // Column D
-            procedure: row[4] ? row[4].toString().trim() : (row['Procedimento'] || row['PROCEDIMENTO'] || row['Cirurgia'] || 'N/A'),
-            date: row[2] ? row[2].toString().trim() : (row['Data'] || row['DATA'] || row['Data da Cirurgia'] || 'N/A'),
-            surgeon: row[5] ? row[5].toString().trim() : (row['Cirurgião'] || row['CIRURGIAO'] || row['Médico'] || 'N/A'),
+            dateTime: row[1] ? row[1].toString().trim() : 'N/A', // Column B
+            surgeon: row[7] ? row[7].toString().trim() : 'N/A', // Column H
             originalRow: row
           }));
 
@@ -69,39 +54,55 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
           setSurgicalMapUploaded(true);
           toast({
             title: "Mapa Cirúrgico Carregado",
-            description: `${surgicalData.length} registros processados com sucesso (linhas vazias removidas).`,
+            description: `${surgicalData.length} registros processados com sucesso.`,
           });
         } else {
-          // For OPME data, extract patient names from column A
+          // For OPME data, filter non-empty rows and group by attendance
           const filteredData = jsonData.filter((row: any[]) => {
-            return row && row[0] && row[0].toString().trim() !== '';
+            return row && row[3] && row[3].toString().trim() !== '';
           });
 
           console.log('Dados filtrados OPME:', filteredData);
 
-          // Convert to objects, skip first row if it looks like headers
+          // Skip header row and convert to objects
           const dataRows = filteredData.slice(1);
 
-          const opmeDataProcessed: OPMEData[] = dataRows.map((row: any[]) => {
-            const columnA = row[0] ? row[0].toString() : '';
-            const extractedPatient = extractPatientFromOPME(columnA);
-            
-            return {
-              patient: extractedPatient, // Extracted from column A
-              material: row[1] ? row[1].toString().trim() : (row['Material'] || row['MATERIAL'] || row['Descrição'] || 'N/A'),
-              code: row[2] ? row[2].toString().trim() : (row['Código'] || row['CODIGO'] || row['Code'] || 'N/A'),
-              procedure: row[3] ? row[3].toString().trim() : (row['Procedimento'] || row['PROCEDIMENTO'] || row['Cirurgia'] || 'N/A'),
-              cost: row[4] ? parseFloat(row[4].toString().replace(/[^\d.,]/g, '').replace(',', '.')) : 0,
-              originalRow: row,
-              originalColumnA: columnA // Keep original for debugging
-            };
+          // Group materials by attendance
+          const opmeMap = new Map<string, { materials: string[], quantities: number[] }>();
+
+          dataRows.forEach((row: any[]) => {
+            const attendance = row[3] ? row[3].toString().trim() : '';
+            const material = row[6] ? row[6].toString().trim() : 'N/A'; // Column G
+            const quantity = row[8] ? parseFloat(row[8].toString()) || 1 : 1; // Column I
+
+            if (attendance && material !== 'N/A') {
+              if (!opmeMap.has(attendance)) {
+                opmeMap.set(attendance, { materials: [], quantities: [] });
+              }
+              const entry = opmeMap.get(attendance)!;
+              entry.materials.push(material);
+              entry.quantities.push(quantity);
+            }
+          });
+
+          // Convert grouped data to array
+          const opmeDataProcessed: OPMEData[] = [];
+          opmeMap.forEach((value, attendance) => {
+            value.materials.forEach((material, index) => {
+              opmeDataProcessed.push({
+                attendance,
+                material,
+                quantity: value.quantities[index],
+                originalRow: []
+              });
+            });
           });
 
           onOpmeData(opmeDataProcessed);
           setOpmeUploaded(true);
           toast({
             title: "Dados OPME Carregados",
-            description: `${opmeDataProcessed.length} materiais processados com sucesso (nomes extraídos do formato código-nome).`,
+            description: `${opmeDataProcessed.length} materiais processados e agrupados por atendimento.`,
           });
         }
       } catch (error) {
@@ -181,7 +182,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
                 : 'Arraste o arquivo .xls do mapa cirúrgico ou clique para selecionar'}
             </p>
             <p className="text-xs text-gray-500 mb-2">
-              (Filtra automaticamente linhas vazias na coluna D)
+              (Colunas: C-Atendimento, D-Paciente, B-Data/Hora, H-Cirurgião)
             </p>
             <Button variant="outline" size="sm">
               Selecionar Arquivo
@@ -221,7 +222,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
                 : 'Arraste o arquivo .xls de materiais OPME ou clique para selecionar'}
             </p>
             <p className="text-xs text-gray-500 mb-2">
-              (Extrai nomes do formato: ######-NNNN)
+              (Colunas: D-Atendimento, G-Material, I-Quantidade)
             </p>
             <Button variant="outline" size="sm">
               Selecionar Arquivo
