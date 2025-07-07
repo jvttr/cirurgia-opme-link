@@ -18,6 +18,26 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onAuthSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const checkAuthorizedEmail = async (email: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('authorized_emails')
+        .select('email')
+        .eq('email', email)
+        .single();
+
+      if (error) {
+        console.error('Erro ao verificar e-mail autorizado:', error);
+        return false;
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error('Erro ao verificar e-mail autorizado:', error);
+      return false;
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -37,6 +57,19 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onAuthSuccess }) => {
         });
         onAuthSuccess();
       } else {
+        // Check if email is authorized before signup
+        const isAuthorized = await checkAuthorizedEmail(email);
+        
+        if (!isAuthorized) {
+          toast({
+            title: "E-mail não autorizado",
+            description: "Este e-mail não está autorizado para cadastro. Entre em contato com o administrador.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
         const redirectUrl = `${window.location.origin}/`;
         const { error } = await supabase.auth.signUp({
           email,
@@ -145,6 +178,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({ onAuthSuccess }) => {
             }
           </button>
         </div>
+
+        {!isLogin && (
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-500">
+              Apenas e-mails autorizados podem se cadastrar.
+            </p>
+          </div>
+        )}
       </Card>
     </div>
   );

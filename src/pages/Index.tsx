@@ -13,6 +13,7 @@ export interface SurgicalMapData {
   attendance: string;
   patient: string;
   dateTime: string;
+  surgery: string;
   surgeon: string;
   [key: string]: any;
 }
@@ -28,6 +29,7 @@ export interface CombinedReport {
   attendance: string;
   patient: string;
   dateTime: string;
+  surgery: string;
   surgeon: string;
   materials: OPMEData[];
   totalQuantity: number;

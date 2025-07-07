@@ -1,3 +1,4 @@
+
 import React, { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card } from '@/components/ui/card';
@@ -32,9 +33,11 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         console.log(`Dados brutos processados (${type}):`, jsonData);
 
         if (type === 'surgical') {
-          // Filter rows where column D (patient) is not empty
+          // Filter rows where column D (patient) is not empty AND column C (attendance) is not "Pront."
           const filteredData = jsonData.filter((row: any[]) => {
-            return row && row[3] && row[3].toString().trim() !== '';
+            const patient = row[3] ? row[3].toString().trim() : '';
+            const attendance = row[2] ? row[2].toString().trim() : '';
+            return patient !== '' && attendance !== 'Pront.' && attendance !== '';
           });
 
           console.log('Dados filtrados do mapa cirúrgico:', filteredData);
@@ -46,6 +49,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
             attendance: row[2] ? row[2].toString().trim() : 'N/A', // Column C
             patient: row[3] ? row[3].toString().trim() : 'N/A', // Column D
             dateTime: row[1] ? row[1].toString().trim() : 'N/A', // Column B
+            surgery: row[5] ? row[5].toString().trim() : 'N/A', // Column F
             surgeon: row[7] ? row[7].toString().trim() : 'N/A', // Column H
             originalRow: row
           }));
@@ -182,7 +186,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
                 : 'Arraste o arquivo .xls do mapa cirúrgico ou clique para selecionar'}
             </p>
             <p className="text-xs text-gray-500 mb-2">
-              (Colunas: C-Atendimento, D-Paciente, B-Data/Hora, H-Cirurgião)
+              (Colunas: C-Atendimento, D-Paciente, B-Data/Hora, F-Cirurgia, H-Cirurgião)
             </p>
             <Button variant="outline" size="sm">
               Selecionar Arquivo

@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { SurgicalMapData, OPMEData } from '@/pages/Index';
-import { Calendar, User, Stethoscope, Package2, Hash } from 'lucide-react';
+import { Calendar, User, Stethoscope, Package2, Hash, Activity } from 'lucide-react';
 
 interface DataPreviewProps {
   surgicalMapData: SurgicalMapData[];
@@ -51,12 +51,17 @@ export const DataPreview: React.FC<DataPreviewProps> = ({
                         <span className="font-medium">Paciente:</span>
                         <span className="ml-1">{item.patient}</span>
                       </div>
-                    </div>
-                    <div className="space-y-2">
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 text-blue-600 mr-2" />
                         <span className="font-medium">Data/Hora:</span>
                         <span className="ml-1">{item.dateTime}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center">
+                        <Activity className="h-4 w-4 text-blue-600 mr-2" />
+                        <span className="font-medium">Cirurgia:</span>
+                        <span className="ml-1">{item.surgery}</span>
                       </div>
                       <div className="flex items-center">
                         <Stethoscope className="h-4 w-4 text-blue-600 mr-2" />

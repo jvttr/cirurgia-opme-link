@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Download, FileSpreadsheet, Calculator, User, Package2, Hash } from 'lucide-react';
+import { Download, FileSpreadsheet, Calculator, User, Package2, Hash, Activity } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { SurgicalMapData, OPMEData, CombinedReport } from '@/pages/Index';
 
@@ -45,6 +45,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           attendance: surgery.attendance,
           patient: surgery.patient,
           dateTime: surgery.dateTime,
+          surgery: surgery.surgery,
           surgeon: surgery.surgeon,
           materials: relatedMaterials,
           totalQuantity: totalQuantity
@@ -89,6 +90,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
               'Atendimento': report.attendance,
               'Paciente': report.patient,
               'Data/Hora': report.dateTime,
+              'Cirurgia': report.surgery,
               'Cirurgião': report.surgeon,
               'Material OPME': material.material,
               'Quantidade': material.quantity,
@@ -98,6 +100,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
               'Atendimento': report.attendance,
               'Paciente': report.patient,
               'Data/Hora': report.dateTime,
+              'Cirurgia': report.surgery,
               'Cirurgião': report.surgeon,
               'Material OPME': 'Nenhum material relacionado',
               'Quantidade': 0,
@@ -114,6 +117,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
         { wch: 15 }, // Atendimento
         { wch: 25 }, // Paciente
         { wch: 20 }, // Data/Hora
+        { wch: 30 }, // Cirurgia
         { wch: 25 }, // Cirurgião
         { wch: 40 }, // Material OPME
         { wch: 12 }, // Quantidade
@@ -228,6 +232,11 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
                     <div className="flex items-center">
                       <span className="font-medium">Data/Hora:</span>
                       <span className="ml-1">{report.dateTime}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Activity className="h-4 w-4 text-blue-600 mr-2" />
+                      <span className="font-medium">Cirurgia:</span>
+                      <span className="ml-1">{report.surgery}</span>
                     </div>
                   </div>
                   
